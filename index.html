@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Seller Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #232f3e;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .card h3 {
+            margin: 0 0 10px 0;
+            color: #232f3e;
+        }
+        .card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #232f3e;
+        }
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .data-table {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 30px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #232f3e;
+            color: white;
+            cursor: pointer;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .search-bar {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .tab-container {
+            margin-bottom: 20px;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            background-color: #f5f5f5;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .tab-button.active {
+            background-color: #232f3e;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @media (max-width: 600px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Amazon Seller Report</h1>
+            <p id="date-range"></p>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showTab('overview')">Overview</button>
+                <button class="tab-button" onclick="showTab('asin-data')">ASIN Data</button>
+                <button class="tab-button" onclick="showTab('daily-data')">Daily Data</button>
+            </div>
+        </div>
+
+        <div id="overview" class="tab-content active">
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>Total Sales</h3>
+                    <div class="value" id="total-sales"></div>
+                </div>
+                <div class="card">
+                    <h3>B2B Sales</h3>
+                    <div class="value" id="b2b-sales"></div>
+                </div>
+                <div class="card">
+                    <h3>Units Ordered</h3>
+                    <div class="value" id="units-ordered"></div>
+                </div>
+                <div class="card">
+                    <h3>B2B Units</h3>
+                    <div class="value" id="b2b-units"></div>
+                </div>
+            </div>
+
+            <div class="charts">
+                <div class="chart-container">
+                    <canvas id="sales-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="traffic-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="asin-data" class="tab-content">
+            <div class="search-bar">
+                <input type="text" id="asin-search" placeholder="Search by ASIN..." onkeyup="filterASINTable()">
+            </div>
+            <div class="data-table">
+                <table id="asin-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('asin-table', 0)">ASIN</th>
+                            <th onclick="sortTable('asin-table', 1)">Total Sales</th>
+                            <th onclick="sortTable('asin-table', 2)">B2B Sales</th>
+                            <th onclick="sortTable('asin-table', 3)">Units Ordered</th>
+                            <th onclick="sortTable('asin-table', 4)">B2B Units</th>
+                            <th onclick="sortTable('asin-table', 5)">Page Views</th>
+                            <th onclick="sortTable('asin-table', 6)">Buy Box %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="asin-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="daily-data" class="tab-content">
+            <div class="search-bar">
+                <input type="text" id="daily-search" placeholder="Search by date..." onkeyup="filterDailyTable()">
+            </div>
+            <div class="data-table">
+                <table id="daily-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('daily-table', 0)">Date</th>
+                            <th onclick="sortTable('daily-table', 1)">Total Sales</th>
+                            <th onclick="sortTable('daily-table', 2)">B2B Sales</th>
+                            <th onclick="sortTable('daily-table', 3)">Units Ordered</th>
+                            <th onclick="sortTable('daily-table', 4)">B2B Units</th>
+                            <th onclick="sortTable('daily-table', 5)">Page Views</th>
+                            <th onclick="sortTable('daily-table', 6)">Sessions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="daily-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let reportData = null;
+
+        function showTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+        }
+
+        function sortTable(tableId, columnIndex) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                const aValue = a.cells[columnIndex].textContent;
+                const bValue = b.cells[columnIndex].textContent;
+                
+                // Handle numeric values (remove currency symbols and commas)
+                const aNum = parseFloat(aValue.replace(/[$,]/g, ''));
+                const bNum = parseFloat(bValue.replace(/[$,]/g, ''));
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return bNum - aNum; // Descending order
+                }
+                
+                return aValue.localeCompare(bValue);
+            });
+            
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function filterASINTable() {
+            const input = document.getElementById('asin-search');
+            const filter = input.value.toUpperCase();
+            const tbody = document.getElementById('asin-table-body');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let row of rows) {
+                const asin = row.cells[0].textContent;
+                row.style.display = asin.toUpperCase().includes(filter) ? '' : 'none';
+            }
+        }
+
+        function filterDailyTable() {
+            const input = document.getElementById('daily-search');
+            const filter = input.value.toUpperCase();
+            const tbody = document.getElementById('daily-table-body');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let row of rows) {
+                const date = row.cells[0].textContent;
+                row.style.display = date.toUpperCase().includes(filter) ? '' : 'none';
+            }
+        }
+
+        async function loadData() {
+            const response = await fetch('sales_and_traffic_report.json');
+            reportData = await response.json();
+            
+            // Update summary cards
+            document.getElementById('date-range').textContent = 
+                `${reportData.reportSpecification.dataStartTime} to ${reportData.reportSpecification.dataEndTime}`;
+
+            let totalSales = 0;
+            let totalB2BSales = 0;
+            let totalUnits = 0;
+            let totalB2BUnits = 0;
+
+            const dates = [];
+            const salesData = [];
+            const b2bSalesData = [];
+            const pageViews = [];
+            const sessions = [];
+
+            // Populate daily data table
+            const dailyTableBody = document.getElementById('daily-table-body');
+            reportData.salesAndTrafficByDate.forEach(day => {
+                totalSales += day.salesByDate.orderedProductSales.amount;
+                totalB2BSales += day.salesByDate.orderedProductSalesB2B.amount;
+                totalUnits += day.salesByDate.unitsOrdered;
+                totalB2BUnits += day.salesByDate.unitsOrderedB2B;
+
+                dates.push(day.date);
+                salesData.push(day.salesByDate.orderedProductSales.amount);
+                b2bSalesData.push(day.salesByDate.orderedProductSalesB2B.amount);
+                pageViews.push(day.trafficByDate.pageViews);
+                sessions.push(day.trafficByDate.sessions);
+
+                const row = dailyTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${day.date}</td>
+                    <td>$${day.salesByDate.orderedProductSales.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>$${day.salesByDate.orderedProductSalesB2B.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${day.salesByDate.unitsOrdered.toLocaleString()}</td>
+                    <td>${day.salesByDate.unitsOrderedB2B.toLocaleString()}</td>
+                    <td>${day.trafficByDate.pageViews.toLocaleString()}</td>
+                    <td>${day.trafficByDate.sessions.toLocaleString()}</td>
+                `;
+            });
+
+            // Populate ASIN data table
+            const asinTableBody = document.getElementById('asin-table-body');
+            reportData.salesAndTrafficByAsin.forEach(item => {
+                const row = asinTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${item.parentAsin}</td>
+                    <td>$${item.salesByAsin.orderedProductSales.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>$${item.salesByAsin.orderedProductSalesB2B.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${item.salesByAsin.unitsOrdered.toLocaleString()}</td>
+                    <td>${item.salesByAsin.unitsOrderedB2B.toLocaleString()}</td>
+                    <td>${(item.trafficByAsin.pageViews || 0).toLocaleString()}</td>
+                    <td>${(item.trafficByAsin.buyBoxPercentage || 0).toFixed(1)}%</td>
+                `;
+            });
+
+            document.getElementById('total-sales').textContent = `$${totalSales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('b2b-sales').textContent = `$${totalB2BSales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('units-ordered').textContent = totalUnits.toLocaleString();
+            document.getElementById('b2b-units').textContent = totalB2BUnits.toLocaleString();
+
+            // Create sales chart
+            new Chart(document.getElementById('sales-chart'), {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Daily Sales',
+                        data: salesData,
+                        borderColor: '#232f3e',
+                        tension: 0.1
+                    }, {
+                        label: 'B2B Sales',
+                        data: b2bSalesData,
+                        borderColor: '#ff9900',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Daily Sales Performance'
+                        }
+                    }
+                }
+            });
+
+            // Create traffic chart
+            new Chart(document.getElementById('traffic-chart'), {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Page Views',
+                        data: pageViews,
+                        borderColor: '#232f3e',
+                        tension: 0.1
+                    }, {
+                        label: 'Sessions',
+                        data: sessions,
+                        borderColor: '#ff9900',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Daily Traffic Metrics'
+                        }
+                    }
+                }
+            });
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

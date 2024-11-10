@@ -1,0 +1,18 @@
+# Environment variables
+.env
+
+# Node modules
+node_modules/
+
+# Generated reports
+sales_and_traffic_report.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo

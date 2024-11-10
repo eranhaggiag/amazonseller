@@ -1,0 +1,19 @@
+{
+  "dateRange": {
+    "start": "2024-10-11",
+    "end": "2024-11-10"
+  },
+  "totalSales": {
+    "amount": 168124.45,
+    "currencyCode": "USD"
+  },
+  "totalB2BSales": {
+    "amount": 12266.09,
+    "currencyCode": "USD"
+  },
+  "totalUnitsOrdered": 7238,
+  "totalUnitsOrderedB2B": 447,
+  "totalPageViews": 173332,
+  "totalSessions": 139913,
+  "averageBuyBoxPercentage": 92.9
+}
